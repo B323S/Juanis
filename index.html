@@ -136,8 +136,8 @@
         #scroll-indicator {
             display: none;
             color: #FF1493;
-            font-size: 1.5vw;
-            margin-top: 25px;
+            font-size: 3vw;
+            margin-top: 15px;
             text-shadow: 0 0 10px #FF69B4;
             animation: scrollBounce 1.5s infinite ease-in-out;
             cursor: pointer;
@@ -179,7 +179,7 @@
             .word { margin: 0 10px; }
             .qr-text { font-size: 2.5vw; }
             #qr-image { width: 140px; height: 140px; }
-            #scroll-indicator { font-size: 2.5vw; }
+            #scroll-indicator { font-size: 4vw; }
             #letter-content { font-size: 2.5vw; }
         }
 
@@ -187,9 +187,8 @@
             #central-text { font-size: 5.5vw; line-height: 1.6; }
             .word { margin: 0 8px; }
             .qr-text { font-size: 4vw; }
-            #qr-container { bottom: 5%; }
             #qr-image { width: 120px; height: 120px; }
-            #scroll-indicator { font-size: 4vw; }
+            #scroll-indicator { font-size: 6vw; }
             #letter-content { font-size: 3.5vw; padding: 25px; }
         }
 
@@ -198,7 +197,7 @@
             .word { margin: 0 5px; }
             .qr-text { font-size: 5vw; }
             #qr-image { width: 100px; height: 100px; }
-            #scroll-indicator { font-size: 5vw; }
+            #scroll-indicator { font-size: 8vw; }
             #letter-content { font-size: 4.5vw; padding: 20px; }
         }
     </style>
@@ -208,16 +207,16 @@
     <!-- Lienzo para la lluvia de letras -->
     <canvas id="matrix"></canvas>
 
-    <div id="screen-one" style="height: 100vh; width: 100%; position: relative; z-index: 2;">
+    <div id="screen-one" style="height: 100vh; width: 100%; position: relative; z-index: 2; display: flex; flex-direction: column; justify-content: center; align-items: center;">
         <!-- Contenedor del texto -->
-        <div id="message-container">
+        <div id="message-container" style="position: relative; top: auto; left: auto; transform: none; margin-bottom: 20px;">
             <div id="central-text"></div>
         </div>
 
-        <div id="qr-container">
+        <div id="qr-container" style="position: relative; bottom: auto; left: auto; display: none;">
             <p class="qr-text">Escanea este código:</p>
             <img id="qr-image" src="qr.png" alt="Código QR" />
-            <div id="scroll-indicator" onclick="document.getElementById('letter-section').scrollIntoView({behavior: 'smooth'})">↓↓ DESLIZA PARA LEER LA CARTA ↓↓</div>
+            <div id="scroll-indicator" onclick="document.getElementById('letter-section').scrollIntoView({behavior: 'smooth'})">▼</div>
         </div>
     </div>
 
