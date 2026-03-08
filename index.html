@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para Juanis 💖</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            overflow: hidden;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        /* Canvas de la lluvia matrix */
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Contenedor del mensaje central */
+        #message-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            width: 90%;
+            text-align: center;
+            pointer-events: none; /* Para no interferir con interacciones si se agregan después */
+        }
+
+        /* Estilo del texto central */
+        #central-text {
+            color: #FFF0F5; /* Rosa muy claro brillante / casi blanco */
+            font-size: 3.5vw;
+            line-height: 2;
+            text-shadow: 
+                0 0 5px #FFF0F5,
+                0 0 15px #FF1493, 
+                0 0 30px #FF1493, 
+                0 0 50px #FF69B4, 
+                0 0 70px #FF69B4;
+        }
+
+        /* Estilo de cada palabra para el efecto máquina de escribir */
+        .word {
+            display: inline-block;
+            margin: 0 15px; 
+            opacity: 0;
+            transform: translateY(30px) scale(0.9);
+            transition: opacity 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                        transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .word.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Animación final palpitante para el mensaje */
+        @keyframes pulsate {
+            0% {
+                text-shadow: 
+                    0 0 5px #FFF0F5,
+                    0 0 15px #FF1493, 
+                    0 0 30px #FF1493, 
+                    0 0 50px #FF69B4,
+                    0 0 70px #FF69B4;
+            }
+            50% {
+                text-shadow: 
+                    0 0 10px #FFFFFF,
+                    0 0 25px #FF1493, 
+                    0 0 45px #FF1493, 
+                    0 0 65px #FF69B4,
+                    0 0 90px #FF69B4;
+            }
+            100% {
+                text-shadow: 
+                    0 0 5px #FFF0F5,
+                    0 0 15px #FF1493, 
+                    0 0 30px #FF1493, 
+                    0 0 50px #FF69B4,
+                    0 0 70px #FF69B4;
+            }
+        }
+
+        #central-text.finished {
+            animation: pulsate 3s infinite ease-in-out;
+        }
+
+        /* Estilos del QR (oculto inicialmente) */
+        #qr-container {
+            display: none; 
+            position: absolute; 
+            bottom: 10%; 
+            left: 0; 
+            width: 100%; 
+            z-index: 3; 
+            text-align: center;
+        }
+
+        .qr-text {
+            color: #FFF0F5; 
+            font-size: 1.5vw; 
+            text-shadow: 0 0 10px #FF1493;
+            margin-bottom: 15px;
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        #qr-image {
+            width: 150px; 
+            height: 150px; 
+            border: 2px solid #FF1493; 
+            border-radius: 10px; 
+            box-shadow: 0 0 20px #FF69B4;
+            display: inline-block;
+            background-color: #fff; /* Asegurar fondo blanco para el QR */
+        }
+
+        /* Responsividad para móviles y tablets */
+        @media (max-width: 1024px) {
+            #central-text { font-size: 4vw; line-height: 1.8; }
+            .word { margin: 0 10px; }
+            .qr-text { font-size: 2.5vw; }
+            #qr-image { width: 140px; height: 140px; }
+        }
+
+        @media (max-width: 768px) {
+            #central-text { font-size: 5.5vw; line-height: 1.6; }
+            .word { margin: 0 8px; }
+            .qr-text { font-size: 4vw; }
+            #qr-container { bottom: 5%; }
+            #qr-image { width: 120px; height: 120px; }
+        }
+
+        @media (max-width: 480px) {
+            #central-text { font-size: 6.5vw; line-height: 1.5; }
+            .word { margin: 0 5px; }
+            .qr-text { font-size: 5vw; }
+            #qr-image { width: 100px; height: 100px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Lienzo para la lluvia de letras -->
+    <canvas id="matrix"></canvas>
+
+    <!-- Contenedor del texto -->
+    <div id="message-container">
+        <div id="central-text"></div>
+    </div>
+
+    <div id="qr-container">
+        <p class="qr-text">Escanea este código:</p>
+        <img id="qr-image" src="qr.png" alt="Código QR" />
+    </div>
+
+    <script>
+        // CONFIGURACIÓN DE LA LLUVIA MATRIX (CYBER-ROMÁNTICA)
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initDrops();
+        }
+
+        const fontSize = 22; // Tamaño de fuente de la lluvia
+        let columns;
+        let drops = [];
+
+        function initDrops() {
+            columns = Math.floor(canvas.width / fontSize) + 1;
+            drops = [];
+            for (let x = 0; x < columns; x++) {
+                // Posiciones iniciales aleatorias arriba de la pantalla
+                drops[x] = Math.random() * -100; 
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Frases para la lluvia
+        const phrases = [
+            'Eres el amor de mi vida y cada dia te elijo a ti',
+            'Tu sonrisa es mi lugar favorito en todo el mundo',
+            'No imagino mi camino si no es de tu mano',
+            'Te amo mas de lo que las palabras pueden expresar'
+        ];
+
+        // Unimos todas las frases y quitamos los espacios para formar los caracteres individuales que caerán
+        const charsMatrix = phrases.join('').replace(/\s/g, '').split('');
+
+        // Paleta de colores rosados
+        const colors = [
+            '#FF1493', // DeepPink
+            '#FF69B4', // HotPink
+            '#FFB6C1', // LightPink
+            '#FFC0CB', // Pink
+            '#F368E0', // Fucsia vibrante
+            '#FF9FF3'  // Rosa pastel brillante
+        ];
+
+        let lastDrawTime = 0;
+        const fps = 22; // Controlar la velocidad de la matriz (fps)
+        const frameInterval = 1000 / fps;
+
+        function drawMatrix(currentTime) {
+            requestAnimationFrame(drawMatrix);
+            
+            const deltaTime = currentTime - lastDrawTime;
+            
+            if (deltaTime >= frameInterval) {
+                lastDrawTime = currentTime - (deltaTime % frameInterval);
+
+                // Fondo negro semitransparente para el rastro de la lluvia
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Estilo de fuente pixelada para la lluvia
+                ctx.font = fontSize + "px 'VT323', monospace";
+                ctx.textAlign = "center";
+
+                for (let i = 0; i < drops.length; i++) {
+                    // Carácter aleatorio de nuestras frases románticas
+                    const text = charsMatrix[Math.floor(Math.random() * charsMatrix.length)];
+                    
+                    // Elegimos un rosa aleatorio
+                    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Efecto de "cabeza" de la gota más brillante ocasionalmente
+                    if (Math.random() > 0.9) {
+                        ctx.fillStyle = '#FFF0F5'; // Blanco/Rosa muy claro
+                    }
+
+                    // Dinámica de dibujo
+                    ctx.fillText(text, i * fontSize + (fontSize / 2), drops[i] * fontSize);
+
+                    // Reiniciar la gota al llegar abajo aleatoriamente
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    
+                    // Bajar la gota
+                    drops[i]++;
+                }
+            }
+        }
+
+        // Iniciar configuración de canvas y loop de Matrix
+        resizeCanvas();
+        requestAnimationFrame(drawMatrix);
+
+
+        // CONFIGURACIÓN DEL EFECTO MÁQUINA DE ESCRIBIR (PALABRA POR PALABRA) Y TRANSICIONES
+        const centralTextContainer = document.getElementById('central-text');
+        const qrContainer = document.getElementById('qr-container');
+        
+        const firstMessage = "TE AMO JUANIS MAS QUE A NADA EN ESTE MUNDO";
+        const secondMessage = "FELIZ DIA A LA MUJER MAS HERMOSA DEL MUNDO";
+        
+        let words = [];
+        let wordElements = [];
+        let currentWordIndex = 0;
+
+        function loadMessage(message) {
+            centralTextContainer.innerHTML = '';
+            centralTextContainer.classList.remove('finished');
+            // Aseguramos que el contenedor esté visible
+            centralTextContainer.style.opacity = 1;
+            centralTextContainer.style.transition = 'opacity 1s ease';
+
+            words = message.split(' ');
+            
+            words.forEach((word) => {
+                const span = document.createElement('span');
+                span.textContent = word;
+                span.className = 'word';
+                centralTextContainer.appendChild(span);
+            });
+
+            wordElements = document.querySelectorAll('.word');
+            currentWordIndex = 0;
+        }
+        
+        function revealNextWord(onComplete) {
+            if (currentWordIndex < wordElements.length) {
+                wordElements[currentWordIndex].classList.add('visible');
+                currentWordIndex++;
+                setTimeout(() => revealNextWord(onComplete), 650);
+            } else {
+                setTimeout(() => {
+                    centralTextContainer.classList.add('finished');
+                    if(onComplete) onComplete();
+                }, 1500);
+            }
+        }
+
+        function fadeOutText(onComplete) {
+            centralTextContainer.style.opacity = 0;
+            setTimeout(onComplete, 1200); // Dar tiempo a que termine la transición de opacidad
+        }
+
+        function showQR() {
+            qrContainer.style.display = 'block';
+            qrContainer.style.opacity = 0;
+            qrContainer.style.transition = 'opacity 1.5s ease';
+            // Trigger reflow to apply transition
+            void qrContainer.offsetWidth; 
+            qrContainer.style.opacity = 1;
+        }
+
+        // --- SECUENCIA PRINCIPAL ---
+        
+        // 1. Mostrar primer mensaje
+        loadMessage(firstMessage);
+        setTimeout(() => {
+            revealNextWord(() => {
+                // Se termina de mostrar el primer mensaje, esperamos 3 segundos...
+                setTimeout(() => {
+                    // ...y lo desvanecemos
+                    fadeOutText(() => {
+                        // 2. Cargamos el segundo mensaje
+                        loadMessage(secondMessage);
+                        // Y lo mostramos
+                        revealNextWord(() => {
+                            // Cuando termina el 2do mensaje de mostrarse, aparece el QR
+                            setTimeout(showQR, 1000);
+                        });
+                    });
+                }, 3000);
+            });
+        }, 2000); // 2 segundos al inicio para ver la lluvia
+
+    </script>
+</body>
+</html>
