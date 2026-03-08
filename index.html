@@ -21,7 +21,7 @@
         /* Canvas de la lluvia matrix */
         canvas {
             display: block;
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             z-index: 1;
@@ -128,12 +128,59 @@
             background-color: #fff; /* Asegurar fondo blanco para el QR */
         }
 
+        @keyframes scrollBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(10px); }
+        }
+
+        #scroll-indicator {
+            display: none;
+            color: #FF1493;
+            font-size: 1.5vw;
+            margin-top: 25px;
+            text-shadow: 0 0 10px #FF69B4;
+            animation: scrollBounce 1.5s infinite ease-in-out;
+            cursor: pointer;
+        }
+
+        #letter-section {
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+            z-index: 2;
+            padding: 5vh 5vw;
+            box-sizing: border-box;
+            background: linear-gradient(180deg, transparent 0%, rgba(20,0,10,0.8) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s ease;
+        }
+
+        #letter-content {
+            background-color: rgba(0, 0, 0, 0.6);
+            border: 1px solid #FF1493;
+            border-radius: 10px;
+            padding: 40px;
+            width: 100%;
+            max-width: 800px;
+            color: #FFF0F5;
+            font-size: 1.5vw;
+            line-height: 1.8;
+            box-shadow: 0 0 30px rgba(255, 20, 147, 0.3);
+            text-shadow: 0 0 5px #FF69B4;
+        }
+
         /* Responsividad para móviles y tablets */
         @media (max-width: 1024px) {
             #central-text { font-size: 4vw; line-height: 1.8; }
             .word { margin: 0 10px; }
             .qr-text { font-size: 2.5vw; }
             #qr-image { width: 140px; height: 140px; }
+            #scroll-indicator { font-size: 2.5vw; }
+            #letter-content { font-size: 2.5vw; }
         }
 
         @media (max-width: 768px) {
@@ -142,6 +189,8 @@
             .qr-text { font-size: 4vw; }
             #qr-container { bottom: 5%; }
             #qr-image { width: 120px; height: 120px; }
+            #scroll-indicator { font-size: 4vw; }
+            #letter-content { font-size: 3.5vw; padding: 25px; }
         }
 
         @media (max-width: 480px) {
@@ -149,6 +198,8 @@
             .word { margin: 0 5px; }
             .qr-text { font-size: 5vw; }
             #qr-image { width: 100px; height: 100px; }
+            #scroll-indicator { font-size: 5vw; }
+            #letter-content { font-size: 4.5vw; padding: 20px; }
         }
     </style>
 </head>
@@ -157,14 +208,22 @@
     <!-- Lienzo para la lluvia de letras -->
     <canvas id="matrix"></canvas>
 
-    <!-- Contenedor del texto -->
-    <div id="message-container">
-        <div id="central-text"></div>
+    <div id="screen-one" style="height: 100vh; width: 100%; position: relative; z-index: 2;">
+        <!-- Contenedor del texto -->
+        <div id="message-container">
+            <div id="central-text"></div>
+        </div>
+
+        <div id="qr-container">
+            <p class="qr-text">Escanea este código:</p>
+            <img id="qr-image" src="qr.png" alt="Código QR" />
+            <div id="scroll-indicator" onclick="document.getElementById('letter-section').scrollIntoView({behavior: 'smooth'})">↓↓ DESLIZA PARA LEER LA CARTA ↓↓</div>
+        </div>
     </div>
 
-    <div id="qr-container">
-        <p class="qr-text">Escanea este código:</p>
-        <img id="qr-image" src="qr.png" alt="Código QR" />
+    <!-- Sección de la carta -->
+    <div id="letter-section">
+        <div id="letter-content"></div>
     </div>
 
     <script>
@@ -192,6 +251,13 @@
         }
 
         window.addEventListener('resize', resizeCanvas);
+
+        // Lógica de interacción para la lluvia interactiva
+        let pointer = { x: -1000, y: -1000 };
+        window.addEventListener('mousemove', (e) => { pointer.x = e.clientX; pointer.y = e.clientY; });
+        window.addEventListener('touchmove', (e) => { pointer.x = e.touches[0].clientX; pointer.y = e.touches[0].clientY; });
+        window.addEventListener('mouseout', () => { pointer = {x: -1000, y: -1000} });
+        window.addEventListener('touchend', () => { pointer = {x: -1000, y: -1000} });
         
         // Frases para la lluvia
         const phrases = [
@@ -235,26 +301,28 @@
                 ctx.textAlign = "center";
 
                 for (let i = 0; i < drops.length; i++) {
-                    // Carácter aleatorio de nuestras frases románticas
-                    const text = charsMatrix[Math.floor(Math.random() * charsMatrix.length)];
+                    let charToDraw = charsMatrix[Math.floor(Math.random() * charsMatrix.length)];
+                    let colorToUse = colors[Math.floor(Math.random() * colors.length)];
                     
-                    // Elegimos un rosa aleatorio
-                    ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    // Efecto de "cabeza" de la gota más brillante ocasionalmente
-                    if (Math.random() > 0.9) {
-                        ctx.fillStyle = '#FFF0F5'; // Blanco/Rosa muy claro
+                    if (Math.random() > 0.9) colorToUse = '#FFF0F5'; // Blanco ocasional
+
+                    let dropX = i * fontSize + (fontSize / 2);
+                    let dropY = drops[i] * fontSize;
+
+                    // Interacción con mouse/dedo: Cambiar a corazones y brillar si está cerca
+                    let distance = Math.hypot(pointer.x - dropX, pointer.y - dropY);
+                    if (distance < 100) {
+                        charToDraw = '♥';
+                        colorToUse = '#FFFFFF';
                     }
 
-                    // Dinámica de dibujo
-                    ctx.fillText(text, i * fontSize + (fontSize / 2), drops[i] * fontSize);
+                    ctx.fillStyle = colorToUse;
+                    ctx.fillText(charToDraw, dropX, dropY);
 
                     // Reiniciar la gota al llegar abajo aleatoriamente
-                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    if (dropY > canvas.height && Math.random() > 0.975) {
                         drops[i] = 0;
                     }
-                    
-                    // Bajar la gota
                     drops[i]++;
                 }
             }
@@ -314,13 +382,59 @@
             setTimeout(onComplete, 1200); // Dar tiempo a que termine la transición de opacidad
         }
 
+        // CONFIGURACIÓN DE LA CARTA
+        const letterSection = document.getElementById('letter-section');
+        const letterContent = document.getElementById('letter-content');
+        
+        let rawLetterText = ""; // El texto de tu carta irá aquí
+        let charIndex = 0;
+        let isTypingLetter = false;
+
+        function typeLetter() {
+            if (charIndex < rawLetterText.length) {
+                let char = rawLetterText.charAt(charIndex);
+                if (char === '\n') {
+                    letterContent.innerHTML += '<br>';
+                } else {
+                    letterContent.innerHTML += char;
+                }
+                charIndex++;
+                setTimeout(typeLetter, 45); // Velocidad al escribir cada letra
+            }
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !isTypingLetter && rawLetterText !== "") {
+                    isTypingLetter = true;
+                    // Retraso ligero al llegar antes de empezar a escribir
+                    setTimeout(typeLetter, 600);
+                }
+            });
+        }, { threshold: 0.3 }); // Activa cuando el 30% de la carta es visible
+
+        observer.observe(letterSection);
+
         function showQR() {
             qrContainer.style.display = 'block';
             qrContainer.style.opacity = 0;
             qrContainer.style.transition = 'opacity 1.5s ease';
-            // Trigger reflow to apply transition
             void qrContainer.offsetWidth; 
             qrContainer.style.opacity = 1;
+
+            // Al mostrar el QR, habilitamos la visualización y scroll de la carta
+            setTimeout(() => {
+                document.body.style.overflow = 'auto'; // Habilitar scroll
+                document.documentElement.style.overflow = 'auto';
+                
+                letterSection.style.opacity = 1;
+                letterSection.style.pointerEvents = 'auto';
+                
+                document.getElementById('scroll-indicator').style.display = 'block';
+
+                // AQUÍ VA EL TEXTO TEMPORAL HASTA QUE ME ENVÍES LA CARTA
+                rawLetterText = "Aún espero mi cartita para ponerla aquí... ❤️";
+            }, 1500);
         }
 
         // --- SECUENCIA PRINCIPAL ---
